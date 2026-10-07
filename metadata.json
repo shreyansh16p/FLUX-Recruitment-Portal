@@ -1,0 +1,6 @@
+{
+  "name": "Registration Form with Live Regex Checklist",
+  "description": "A responsive, accessible dark-themed registration form with real-time regex password checklist, strength meter, live email validation, and FLUX tech-club styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

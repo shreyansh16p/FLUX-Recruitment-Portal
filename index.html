@@ -1,0 +1,1822 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registration Form with Live Regex Checklist</title>
+    <meta name="description" content="A responsive, accessible dark-themed registration form with real-time regex password checklist, strength meter, live email validation, and FLUX tech-club styling." />
+    <meta property="og:title" content="Registration Form with Live Regex Checklist" />
+    <meta property="og:description" content="A responsive, accessible dark-themed registration form with real-time regex password checklist, strength meter, live email validation, and FLUX tech-club styling." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <style>
+      /* ==========================================================================
+         DESIGN SYSTEM & CSS VARIABLES — FLUX Cyber Collective Dark Theme
+         ========================================================================== */
+      :root {
+        --bg-base: #06080e;
+        --bg-surface: #0e121b;
+        --bg-surface-elevated: rgba(15, 20, 32, 0.88);
+        --bg-input: #121724;
+        --bg-input-focus: #161e2f;
+        --border-subtle: rgba(255, 255, 255, 0.08);
+        --border-focus: #38bdf8;
+        --border-error: #ef4444;
+        --border-success: #10b981;
+
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+
+        --cyan: #38bdf8;
+        --cyan-glow: rgba(56, 189, 248, 0.3);
+        --indigo: #6366f1;
+        --indigo-glow: rgba(99, 102, 241, 0.25);
+        --emerald: #10b981;
+        --emerald-glow: rgba(16, 185, 129, 0.3);
+
+        /* Strength Meter Palette: Red, Orange, Yellow, Green */
+        --meter-red: #ef4444;
+        --meter-orange: #f97316;
+        --meter-yellow: #eab308;
+        --meter-green: #10b981;
+
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 16px;
+        --radius-xl: 22px;
+
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        --transition-fast: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-medium: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 0.75rem;
+        position: relative;
+        overflow-x: hidden;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Ambient decorative background grid & glow */
+      .ambient-glow {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      }
+      .ambient-glow::before {
+        content: "";
+        position: absolute;
+        top: -15%;
+        left: 15%;
+        width: 550px;
+        height: 550px;
+        background: radial-gradient(circle, var(--indigo-glow) 0%, transparent 70%);
+        filter: blur(80px);
+        opacity: 0.65;
+      }
+      .ambient-glow::after {
+        content: "";
+        position: absolute;
+        bottom: -15%;
+        right: 15%;
+        width: 520px;
+        height: 520px;
+        background: radial-gradient(circle, var(--cyan-glow) 0%, transparent 70%);
+        filter: blur(90px);
+        opacity: 0.55;
+      }
+      .bg-grid {
+        position: fixed;
+        inset: 0;
+        background-image: 
+          linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        background-size: 28px 28px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Canvas for Confetti celebration */
+      #confetti-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 999;
+      }
+
+      /* App Container & Responsive Card */
+      .app-wrapper {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 520px;
+        margin: auto;
+      }
+
+      .card {
+        background: var(--bg-surface-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: 2rem 1.75rem;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 
+          0 20px 40px -15px rgba(0, 0, 0, 0.75),
+          0 0 0 1px rgba(255, 255, 255, 0.05),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        transition: transform var(--transition-medium), box-shadow var(--transition-medium);
+      }
+
+      @media (max-width: 480px) {
+        .card {
+          padding: 1.5rem 1rem;
+          border-radius: var(--radius-lg);
+        }
+      }
+
+      @media (max-width: 360px) {
+        body {
+          padding: 0.75rem 0.5rem;
+        }
+        .card {
+          padding: 1.25rem 0.85rem;
+        }
+      }
+
+      /* Shake animation on invalid submit */
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        15%, 45%, 75% { transform: translateX(-8px); }
+        30%, 60%, 90% { transform: translateX(8px); }
+      }
+      .shake {
+        animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      }
+
+      /* Flash highlight animation for unmet fields */
+      @keyframes highlightPulse {
+        0%, 100% { border-color: inherit; }
+        50% { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35); }
+      }
+      .field-highlight {
+        animation: highlightPulse 0.8s ease-in-out 2;
+      }
+      @keyframes itemFlash {
+        0%, 100% { background: transparent; }
+        50% { background: rgba(239, 68, 68, 0.12); }
+      }
+      .checklist-flash {
+        animation: itemFlash 0.8s ease-in-out 2;
+        border-radius: 4px;
+      }
+
+      /* FLUX Branding Header */
+      .brand-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .brand-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background: linear-gradient(135deg, #0ea5e9, #6366f1);
+        border-radius: var(--radius-sm);
+        color: #fff;
+        font-family: var(--font-mono);
+        font-weight: 800;
+        font-size: 0.95rem;
+        box-shadow: 0 0 12px var(--cyan-glow);
+        flex-shrink: 0;
+      }
+      .brand-title {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 0.925rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-primary);
+        line-height: 1.2;
+      }
+      .brand-subtitle {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--cyan);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .tag-indicator {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-subtle);
+        padding: 0.2rem 0.55rem;
+        border-radius: 9999px;
+        white-space: nowrap;
+      }
+
+      .card-intro {
+        margin-bottom: 1.5rem;
+      }
+      .card-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        margin-bottom: 0.35rem;
+      }
+      .card-desc {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+      }
+
+      /* Consistent Vertical Rhythm for Form Groups */
+      .form-group {
+        margin-bottom: 1.25rem;
+        position: relative;
+      }
+
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.45rem;
+        gap: 0.5rem;
+      }
+      label {
+        font-size: 0.825rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 0.01em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      /* Inline Regex Chips */
+      .regex-chip {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: rgba(148, 163, 184, 0.7);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .regex-chip.valid {
+        color: #38bdf8;
+        border-color: rgba(56, 189, 248, 0.25);
+        background: rgba(56, 189, 248, 0.06);
+      }
+
+      /* Input Wrapper & Text Fields */
+      .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="password"] {
+        width: 100%;
+        height: 44px;
+        background-color: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 0 1rem;
+        font-size: 0.925rem;
+        font-family: inherit;
+        color: var(--text-primary);
+        outline: none;
+        transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+      }
+      input::placeholder {
+        color: rgba(148, 163, 184, 0.45);
+        font-style: normal;
+      }
+
+      /* Autofill styling & event detection */
+      @keyframes onAutoFillStart {
+        from { /**/ }
+        to { /**/ }
+      }
+      input:-webkit-autofill {
+        animation-name: onAutoFillStart;
+        -webkit-text-fill-color: var(--text-primary) !important;
+        -webkit-box-shadow: 0 0 0px 1000px var(--bg-input) inset !important;
+        transition: background-color 50000s ease-in-out 0s;
+      }
+
+      /* Right padding for action icons & buttons */
+      .input-wrapper.has-icon input {
+        padding-right: 2.75rem;
+      }
+      .input-wrapper.has-toggle-and-icon input {
+        padding-right: 4.5rem;
+      }
+
+      /* Visible Focus Rings */
+      input:focus-visible {
+        border-color: var(--border-focus);
+        background-color: var(--bg-input-focus);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2), 0 0 16px rgba(56, 189, 248, 0.12);
+      }
+
+      /* Validation States */
+      input.is-valid {
+        border-color: var(--border-success) !important;
+      }
+      input.is-valid:focus-visible {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+      }
+      input.is-invalid {
+        border-color: var(--border-error) !important;
+      }
+      input.is-invalid:focus-visible {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+      }
+
+      /* In-Field Status Icon (Check / Cross) */
+      .field-status-icon {
+        position: absolute;
+        right: 0.85rem;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        opacity: 0;
+        transform: scale(0.7);
+        transition: opacity var(--transition-fast), transform var(--transition-fast);
+      }
+      .field-status-icon.visible {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .field-status-icon.valid {
+        color: var(--emerald);
+      }
+      .field-status-icon.invalid {
+        color: var(--border-error);
+      }
+
+      /* For inputs with show/hide toggle + status icon side-by-side */
+      .input-actions {
+        position: absolute;
+        right: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      /* Password toggle button */
+      .btn-toggle-pw {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        padding: 0.4rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color var(--transition-fast), background-color var(--transition-fast);
+      }
+      .btn-toggle-pw:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .btn-toggle-pw:focus-visible {
+        outline: 2px solid var(--cyan);
+        color: var(--cyan);
+      }
+      .btn-toggle-pw svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+      }
+
+      /* Field feedback text */
+      .field-feedback {
+        font-size: 0.75rem;
+        margin-top: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 1.15rem;
+        color: var(--text-muted);
+        transition: color var(--transition-fast);
+      }
+      .field-feedback.valid {
+        color: var(--emerald);
+      }
+      .field-feedback.invalid {
+        color: var(--border-error);
+      }
+
+      /* Password Generator Toolbar */
+      .generator-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+        padding: 0.35rem 0.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px dashed rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-sm);
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .generator-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .generator-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .btn-micro {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-family: inherit;
+        padding: 0.25rem 0.55rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        transition: all var(--transition-fast);
+      }
+      .btn-micro:hover {
+        background: rgba(56, 189, 248, 0.12);
+        border-color: rgba(56, 189, 248, 0.3);
+        color: var(--cyan);
+      }
+      .btn-micro:focus-visible {
+        outline: 2px solid var(--cyan);
+      }
+
+      /* Strength Meter & Progress Ring Container */
+      .strength-container {
+        margin-top: 0.65rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 0.85rem;
+      }
+      .strength-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+      .strength-status-group {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .strength-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      .strength-value {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        font-family: var(--font-mono);
+        transition: color 0.25s ease;
+      }
+
+      /* Real SVG Progress Ring */
+      .counter-badge-group {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .counter-text {
+        font-size: 0.72rem;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+      }
+      .progress-ring-svg {
+        width: 22px;
+        height: 22px;
+        transform: rotate(-90deg);
+        overflow: visible;
+      }
+      .progress-ring-bg {
+        stroke: rgba(255, 255, 255, 0.1);
+      }
+      .progress-ring-fill {
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.35s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.35s ease;
+      }
+
+      /* 4-Segment Strength Bar with Palette: Red, Orange, Yellow, Green */
+      .strength-track {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        height: 5px;
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      .strength-segment {
+        background-color: rgba(255, 255, 255, 0.08);
+        height: 100%;
+        border-radius: 2px;
+        transition: background-color 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      /* Checklist styling */
+      .checklist-group {
+        margin-top: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .checklist-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        padding: 0.2rem 0.3rem;
+        border-radius: 4px;
+        transition: color var(--transition-fast), background-color var(--transition-fast);
+      }
+      .checklist-item-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      /* Scale pop keyframe when item flips to met */
+      @keyframes popCheck {
+        0% { transform: scale(0.8); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1.1); }
+      }
+
+      .rule-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--meter-red);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        flex-shrink: 0;
+      }
+      .checklist-item.met .rule-icon {
+        background: rgba(16, 185, 129, 0.18);
+        color: var(--meter-green);
+        border-color: rgba(16, 185, 129, 0.5);
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
+        animation: popCheck 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transform: scale(1.1);
+      }
+      .checklist-item.met {
+        color: var(--text-primary);
+      }
+      .rule-label {
+        font-weight: 400;
+        transition: color var(--transition-fast);
+      }
+      .checklist-item.met .rule-label {
+        color: var(--text-primary);
+      }
+      .rule-regex-tag {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: rgba(148, 163, 184, 0.5);
+        background: rgba(255, 255, 255, 0.03);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        user-select: none;
+      }
+      .checklist-item.met .rule-regex-tag {
+        color: rgba(56, 189, 248, 0.85);
+        border-color: rgba(56, 189, 248, 0.2);
+        background: rgba(56, 189, 248, 0.06);
+      }
+
+      /* Submit Button & Wrapper for Disabled Interceptions */
+      .submit-wrapper {
+        position: relative;
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+
+      /* Glow Pulse when Enabled */
+      @keyframes glowPulse {
+        0%, 100% {
+          box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), 0 0 30px rgba(99, 102, 241, 0.25);
+        }
+        50% {
+          box-shadow: 0 0 28px rgba(56, 189, 248, 0.65), 0 0 45px rgba(99, 102, 241, 0.45);
+        }
+      }
+
+      .btn-submit {
+        width: 100%;
+        height: 48px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: inherit;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, #0284c7, #4f46e5);
+        color: #ffffff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all var(--transition-fast);
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-submit.is-ready {
+        background: linear-gradient(135deg, #0ea5e9, #6366f1);
+        animation: glowPulse 2.2s infinite ease-in-out;
+        cursor: pointer;
+      }
+      .btn-submit.is-ready:hover {
+        transform: translateY(-1px);
+        background: linear-gradient(135deg, #38bdf8, #818cf8);
+      }
+      .btn-submit:focus-visible {
+        outline: 2px solid var(--cyan);
+        outline-offset: 3px;
+      }
+      .btn-submit:disabled,
+      .btn-submit[aria-disabled="true"] {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border-subtle);
+        cursor: not-allowed;
+        box-shadow: none;
+        opacity: 0.6;
+        animation: none;
+        transform: none;
+      }
+
+      /* Footer Branding */
+      .form-footer {
+        margin-top: 1.5rem;
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 1rem;
+        line-height: 1.5;
+      }
+      .form-footer-author {
+        margin-top: 0.35rem;
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+      }
+
+      /* Success Screen Overlay */
+      .success-overlay {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1.5rem 0.5rem;
+      }
+      .success-overlay.active {
+        display: flex;
+        animation: fadeIn 0.4s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
+      .success-badge-circle {
+        width: 76px;
+        height: 76px;
+        background: rgba(16, 185, 129, 0.12);
+        border: 2px solid var(--emerald);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 0 28px var(--emerald-glow);
+        animation: popSuccess 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes popSuccess {
+        0% { transform: scale(0); opacity: 0; }
+        80% { transform: scale(1.12); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .success-badge-circle svg {
+        width: 38px;
+        height: 38px;
+        color: var(--emerald);
+      }
+
+      .success-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+      }
+      .success-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        max-width: 380px;
+        margin-bottom: 1.5rem;
+      }
+
+      .success-summary {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        text-align: left;
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .summary-row:last-child {
+        border-bottom: none;
+      }
+      .summary-label {
+        color: var(--text-muted);
+      }
+      .summary-val {
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        font-weight: 500;
+      }
+
+      .btn-secondary {
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all var(--transition-fast);
+      }
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      .btn-secondary:focus-visible {
+        outline: 2px solid var(--cyan);
+      }
+
+      /* Screen reader utility */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Ambient futuristic backdrop -->
+    <div class="ambient-glow" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <!-- Celebration confetti canvas -->
+    <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-wrapper">
+      <main class="card" id="form-card">
+        <!-- FLUX Tech-Club Branding Header -->
+        <header class="brand-header">
+          <div class="brand-logo">
+            <span class="brand-badge" aria-hidden="true">F</span>
+            <div>
+              <div class="brand-title">FLUX // COLLECTIVE</div>
+              <div class="brand-subtitle">RECRUITMENT PORTAL · 2026</div>
+            </div>
+          </div>
+          <span class="tag-indicator" title="Live Strict Regex Verification">REGEX · STRICT MODE</span>
+        </header>
+
+        <!-- Standard Form View -->
+        <div id="form-container">
+          <div class="card-intro">
+            <h1 class="card-title">Join FLUX Network</h1>
+            <p class="card-desc">Complete registration. All credentials are verified against live regular expressions with instantaneous visual feedback.</p>
+          </div>
+
+          <form id="signup-form" novalidate autocomplete="off">
+            <!-- 1. Full Name Field with Regex Chip -->
+            <div class="form-group" id="group-name">
+              <div class="label-row">
+                <label for="fullName">
+                  <span>Full Name</span>
+                </label>
+                <code class="regex-chip" id="name-chip" title="RegEx: /^[A-Za-z][A-Za-z '.-]{1,49}$/">/^[A-Za-z][A-Za-z '.-]{1,49}$/</code>
+              </div>
+              <div class="input-wrapper has-icon">
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  placeholder="Enter full name (e.g. Alex Mercer)"
+                  required
+                  autocomplete="name"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="name-feedback"
+                />
+                <!-- Status icon inside field -->
+                <div id="name-status-icon" class="field-status-icon" aria-hidden="true"></div>
+              </div>
+              <div id="name-feedback" class="field-feedback" aria-live="polite">
+                Letters, spaces, apostrophes, dots, or hyphens (2–50 characters).
+              </div>
+            </div>
+
+            <!-- 2. Email Field with Regex Chip -->
+            <div class="form-group" id="group-email">
+              <div class="label-row">
+                <label for="email">
+                  <span>Work or Personal Email</span>
+                </label>
+                <code class="regex-chip" id="email-chip" title="RegEx: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/">/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/</code>
+              </div>
+              <div class="input-wrapper has-icon">
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="Enter email address (e.g. alex@flux.dev)"
+                  required
+                  autocomplete="email"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="email-feedback"
+                />
+                <div id="email-status-icon" class="field-status-icon" aria-hidden="true"></div>
+              </div>
+              <div id="email-feedback" class="field-feedback" aria-live="polite">
+                Enter an email address to validate.
+              </div>
+            </div>
+
+            <!-- 3. Password Field with Live Checklist & Generator -->
+            <div class="form-group" id="group-password">
+              <div class="label-row">
+                <label for="password">
+                  <span>Password</span>
+                </label>
+                <span class="regex-chip">5 security rules</span>
+              </div>
+              <div class="input-wrapper has-toggle-and-icon">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="Enter password"
+                  required
+                  autocomplete="new-password"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="password-rules-announcer"
+                />
+                <div class="input-actions">
+                  <button
+                    type="button"
+                    id="togglePassword"
+                    class="btn-toggle-pw"
+                    aria-label="Show password"
+                    title="Toggle password visibility"
+                  >
+                    <!-- Eye SVG -->
+                    <svg id="eye-icon-pw" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Password Generator Toolbar -->
+              <div class="generator-bar">
+                <span class="generator-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  <span>Need a strong password?</span>
+                </span>
+                <div class="generator-actions">
+                  <button type="button" id="btn-generate-pw" class="btn-micro" title="Generate password satisfying all 5 rules">
+                    ⚡ Generate Strong
+                  </button>
+                  <button type="button" id="btn-copy-pw" class="btn-micro" title="Copy password to clipboard">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span id="copy-text">Copy</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Password Strength Meter & Real SVG Progress Ring -->
+              <div class="strength-container" aria-label="Password Security Checklist">
+                <div class="strength-header">
+                  <div class="strength-status-group">
+                    <span class="strength-label">Strength:</span>
+                    <span id="strength-text" class="strength-value" style="color: var(--text-muted)">Empty</span>
+                  </div>
+
+                  <!-- Real SVG Progress Ring (circumference: 56.55) -->
+                  <div class="counter-badge-group">
+                    <span id="conditions-counter" class="counter-text">0 / 5 rules</span>
+                    <svg class="progress-ring-svg" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="progress-ring-bg" cx="12" cy="12" r="9" fill="none" stroke-width="2.5" />
+                      <circle id="progress-ring-circle" class="progress-ring-fill" cx="12" cy="12" r="9" fill="none" stroke-width="2.5" stroke="#ef4444" stroke-dasharray="56.55" stroke-dashoffset="56.55" />
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- 4-bar strength indicator: red, orange, yellow, green -->
+                <div class="strength-track" aria-hidden="true">
+                  <div class="strength-segment" id="seg-1"></div>
+                  <div class="strength-segment" id="seg-2"></div>
+                  <div class="strength-segment" id="seg-3"></div>
+                  <div class="strength-segment" id="seg-4"></div>
+                </div>
+
+                <!-- Live Password Checklist Container with aria-live -->
+                <div id="checklist-container" class="checklist-group" role="list" aria-live="polite" aria-label="Password Requirements"></div>
+              </div>
+
+              <!-- Screen reader announcer for live updates -->
+              <div id="password-rules-announcer" class="sr-only" aria-live="polite"></div>
+            </div>
+
+            <!-- 4. Confirm Password Field -->
+            <div class="form-group" id="group-confirm">
+              <div class="label-row">
+                <label for="confirmPassword">
+                  <span>Confirm Password</span>
+                </label>
+                <span class="regex-chip">Match assertion</span>
+              </div>
+              <div class="input-wrapper has-toggle-and-icon">
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  placeholder="Re-enter password"
+                  required
+                  autocomplete="new-password"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="confirm-feedback"
+                />
+                <div class="input-actions">
+                  <button
+                    type="button"
+                    id="toggleConfirmPassword"
+                    class="btn-toggle-pw"
+                    aria-label="Show confirm password"
+                    title="Toggle confirm password visibility"
+                  >
+                    <svg id="eye-icon-confirm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div id="confirm-feedback" class="field-feedback" aria-live="polite">
+                Confirm your password.
+              </div>
+            </div>
+
+            <!-- 5. Submit Button with Glow Pulse & Disabled Click Interception -->
+            <div class="submit-wrapper" id="submit-wrapper">
+              <button
+                type="submit"
+                id="submit-btn"
+                class="btn-submit"
+                disabled
+                aria-disabled="true"
+              >
+                <span>Join FLUX Collective</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            </div>
+          </form>
+
+          <!-- Footer with required credit line -->
+          <footer class="form-footer">
+            <div>All inputs validated client-side with zero external telemetry.</div>
+            <div class="form-footer-author">Built for FLUX Recruitment 2026 · Made by Shreyansh Patel</div>
+          </footer>
+        </div>
+
+        <!-- Success Screen Overlay -->
+        <div id="success-screen" class="success-overlay" role="status" aria-live="assertive">
+          <div class="success-badge-circle" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h2 class="success-title">Membership Confirmed!</h2>
+          <p class="success-desc">
+            All regular expressions and match assertions passed. Your developer credentials have been verified in the FLUX network.
+          </p>
+
+          <div class="success-summary">
+            <div class="summary-row">
+              <span class="summary-label">Member Name:</span>
+              <span id="summary-name" class="summary-val">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Verified Email:</span>
+              <span id="summary-email" class="summary-val">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Security Protocol:</span>
+              <span class="summary-val" style="color: var(--meter-green)">5/5 Regex Passed (Strong)</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Timestamp:</span>
+              <span id="summary-time" class="summary-val">-</span>
+            </div>
+          </div>
+
+          <button type="button" id="btn-back" class="btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Back to form</span>
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <!-- ==========================================================================
+         APPLICATION JAVASCRIPT
+         Standalone, Zero Dependencies, Strict Regex Engine
+         ========================================================================== -->
+    <script>
+      (function () {
+        'use strict';
+
+        /**
+         * CONSTANTS & REGEX SPECIFICATIONS
+         */
+        const NAME_REGEX = /^[A-Za-z][A-Za-z '.-]{1,49}$/;
+        const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+        const PASSWORD_RULES = [
+          {
+            id: 'length',
+            label: 'At least 8 characters',
+            regex: /.{8,}/,
+            tag: '/.{8,}/'
+          },
+          {
+            id: 'uppercase',
+            label: 'One uppercase letter',
+            regex: /[A-Z]/,
+            tag: '/[A-Z]/'
+          },
+          {
+            id: 'lowercase',
+            label: 'One lowercase letter',
+            regex: /[a-z]/,
+            tag: '/[a-z]/'
+          },
+          {
+            id: 'number',
+            label: 'One digit',
+            regex: /\d/,
+            tag: '/\\d/'
+          },
+          {
+            id: 'symbol',
+            label: 'One symbol',
+            regex: /[^A-Za-z0-9]/,
+            tag: '/[^A-Za-z0-9]/'
+          }
+        ];
+
+        // Password Strength Tiers with colors: Red, Orange, Yellow, Green
+        const STRENGTH_TIERS = [
+          { label: 'Empty', color: 'var(--text-muted)', segments: 0 },
+          { label: 'Weak', color: '#ef4444', segments: 1 },        // 1 rule (Red)
+          { label: 'Weak', color: '#ef4444', segments: 1 },        // 2 rules (Red)
+          { label: 'Fair', color: '#f97316', segments: 2 },        // 3 rules (Orange)
+          { label: 'Good', color: '#eab308', segments: 3 },        // 4 rules (Yellow)
+          { label: 'Strong', color: '#10b981', segments: 4 }       // 5 rules (Green)
+        ];
+
+        // SVGs for Icons
+        const ICON_CHECK = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        `;
+        const ICON_CROSS = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        `;
+        const SVG_EYE = `
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        `;
+        const SVG_EYE_OFF = `
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+          </svg>
+        `;
+
+        // Validation State Tracking
+        let nameValid = false;
+        let emailValid = false;
+        let passwordAllRulesMet = false;
+        let confirmValid = false;
+
+        // Circle Circumference for r=9: 2 * Math.PI * 9 ≈ 56.54867
+        const CIRCUMFERENCE = 2 * Math.PI * 9;
+
+        function init() {
+          const form = document.getElementById('signup-form');
+          const formCard = document.getElementById('form-card');
+          const formContainer = document.getElementById('form-container');
+          const successScreen = document.getElementById('success-screen');
+
+          const nameInput = document.getElementById('fullName');
+          const nameChip = document.getElementById('name-chip');
+          const nameStatusIcon = document.getElementById('name-status-icon');
+          const nameFeedback = document.getElementById('name-feedback');
+
+          const emailInput = document.getElementById('email');
+          const emailChip = document.getElementById('email-chip');
+          const emailStatusIcon = document.getElementById('email-status-icon');
+          const emailFeedback = document.getElementById('email-feedback');
+
+          const passwordInput = document.getElementById('password');
+          const togglePasswordBtn = document.getElementById('togglePassword');
+          const checklistContainer = document.getElementById('checklist-container');
+          const strengthText = document.getElementById('strength-text');
+          const conditionsCounter = document.getElementById('conditions-counter');
+          const progressRingCircle = document.getElementById('progress-ring-circle');
+          const segments = [
+            document.getElementById('seg-1'),
+            document.getElementById('seg-2'),
+            document.getElementById('seg-3'),
+            document.getElementById('seg-4')
+          ];
+          const rulesAnnouncer = document.getElementById('password-rules-announcer');
+
+          const btnGeneratePw = document.getElementById('btn-generate-pw');
+          const btnCopyPw = document.getElementById('btn-copy-pw');
+          const copyText = document.getElementById('copy-text');
+
+          const confirmInput = document.getElementById('confirmPassword');
+          const toggleConfirmPasswordBtn = document.getElementById('toggleConfirmPassword');
+          const confirmFeedback = document.getElementById('confirm-feedback');
+
+          const submitWrapper = document.getElementById('submit-wrapper');
+          const submitBtn = document.getElementById('submit-btn');
+          const btnBack = document.getElementById('btn-back');
+
+          const summaryName = document.getElementById('summary-name');
+          const summaryEmail = document.getElementById('summary-email');
+          const summaryTime = document.getElementById('summary-time');
+
+          if (!form || !nameInput || !emailInput || !passwordInput || !confirmInput) {
+            return;
+          }
+
+          if (progressRingCircle) {
+            progressRingCircle.style.strokeDasharray = `${CIRCUMFERENCE}`;
+            progressRingCircle.style.strokeDashoffset = `${CIRCUMFERENCE}`;
+          }
+
+          // 1. Build Checklist Dynamically
+          if (checklistContainer) {
+            checklistContainer.innerHTML = '';
+            PASSWORD_RULES.forEach((rule) => {
+              const item = document.createElement('div');
+              item.className = 'checklist-item';
+              item.id = `rule-item-${rule.id}`;
+              item.setAttribute('role', 'listitem');
+              item.innerHTML = `
+                <div class="checklist-item-left">
+                  <span class="rule-icon" id="rule-icon-${rule.id}" aria-hidden="true">✗</span>
+                  <span class="rule-label">${rule.label}</span>
+                </div>
+                <code class="rule-regex-tag" title="RegEx pattern: ${rule.tag}">${rule.tag}</code>
+              `;
+              checklistContainer.appendChild(item);
+            });
+          }
+
+          // 2. Full Name Validation
+          function validateName() {
+            const val = nameInput.value.trim();
+
+            if (val.length === 0) {
+              nameValid = false;
+              nameInput.classList.remove('is-valid', 'is-invalid');
+              nameInput.setAttribute('aria-invalid', 'false');
+              if (nameStatusIcon) {
+                nameStatusIcon.className = 'field-status-icon';
+                nameStatusIcon.innerHTML = '';
+              }
+              if (nameChip) nameChip.classList.remove('valid');
+              if (nameFeedback) {
+                nameFeedback.textContent = 'Letters, spaces, apostrophes, dots, or hyphens (2–50 characters).';
+                nameFeedback.className = 'field-feedback';
+              }
+            } else if (NAME_REGEX.test(val)) {
+              nameValid = true;
+              nameInput.classList.add('is-valid');
+              nameInput.classList.remove('is-invalid');
+              nameInput.setAttribute('aria-invalid', 'false');
+              if (nameStatusIcon) {
+                nameStatusIcon.className = 'field-status-icon visible valid';
+                nameStatusIcon.innerHTML = ICON_CHECK;
+              }
+              if (nameChip) nameChip.classList.add('valid');
+              if (nameFeedback) {
+                nameFeedback.textContent = '✓ Looks good';
+                nameFeedback.className = 'field-feedback valid';
+              }
+            } else {
+              nameValid = false;
+              nameInput.classList.add('is-invalid');
+              nameInput.classList.remove('is-valid');
+              nameInput.setAttribute('aria-invalid', 'true');
+              if (nameStatusIcon) {
+                nameStatusIcon.className = 'field-status-icon visible invalid';
+                nameStatusIcon.innerHTML = ICON_CROSS;
+              }
+              if (nameChip) nameChip.classList.remove('valid');
+              if (nameFeedback) {
+                if (val.length < 2) {
+                  nameFeedback.textContent = '✗ Full name must be at least 2 characters.';
+                } else if (!/^[A-Za-z]/.test(val)) {
+                  nameFeedback.textContent = '✗ Name must start with an alphabet letter.';
+                } else {
+                  nameFeedback.textContent = '✗ Only letters, spaces, apostrophes, dots, and hyphens permitted.';
+                }
+                nameFeedback.className = 'field-feedback invalid';
+              }
+            }
+            checkFormValidity();
+          }
+
+          // 3. Email Validation
+          function validateEmail() {
+            const val = emailInput.value.trim();
+
+            if (val.length === 0) {
+              emailValid = false;
+              emailInput.classList.remove('is-valid', 'is-invalid');
+              emailInput.setAttribute('aria-invalid', 'false');
+              if (emailStatusIcon) {
+                emailStatusIcon.className = 'field-status-icon';
+                emailStatusIcon.innerHTML = '';
+              }
+              if (emailChip) emailChip.classList.remove('valid');
+              if (emailFeedback) {
+                emailFeedback.textContent = 'Enter an email address to validate.';
+                emailFeedback.className = 'field-feedback';
+              }
+            } else if (EMAIL_REGEX.test(val)) {
+              emailValid = true;
+              emailInput.classList.add('is-valid');
+              emailInput.classList.remove('is-invalid');
+              emailInput.setAttribute('aria-invalid', 'false');
+              if (emailStatusIcon) {
+                emailStatusIcon.className = 'field-status-icon visible valid';
+                emailStatusIcon.innerHTML = ICON_CHECK;
+              }
+              if (emailChip) emailChip.classList.add('valid');
+              if (emailFeedback) {
+                emailFeedback.textContent = '✓ Looks good';
+                emailFeedback.className = 'field-feedback valid';
+              }
+            } else {
+              emailValid = false;
+              emailInput.classList.add('is-invalid');
+              emailInput.classList.remove('is-valid');
+              emailInput.setAttribute('aria-invalid', 'true');
+              if (emailStatusIcon) {
+                emailStatusIcon.className = 'field-status-icon visible invalid';
+                emailStatusIcon.innerHTML = ICON_CROSS;
+              }
+              if (emailChip) emailChip.classList.remove('valid');
+              if (emailFeedback) {
+                if (!val.includes('@')) {
+                  emailFeedback.textContent = "✗ Missing '@' in email address.";
+                } else if (val.endsWith('@') || !val.split('@')[1].includes('.')) {
+                  emailFeedback.textContent = '✗ Email domain must include a dot (e.g. .com, .dev).';
+                } else {
+                  emailFeedback.textContent = '✗ Invalid email format (example: alex@flux.dev).';
+                }
+                emailFeedback.className = 'field-feedback invalid';
+              }
+            }
+            checkFormValidity();
+          }
+
+          // 4. Password Validation & Checklist Evaluation
+          function validatePassword() {
+            const val = passwordInput.value;
+            let passedCount = 0;
+
+            PASSWORD_RULES.forEach((rule) => {
+              const isMet = rule.regex.test(val);
+              const itemEl = document.getElementById(`rule-item-${rule.id}`);
+              const iconEl = document.getElementById(`rule-icon-${rule.id}`);
+
+              if (!itemEl || !iconEl) return;
+
+              if (isMet) {
+                passedCount++;
+                if (!itemEl.classList.contains('met')) {
+                  itemEl.classList.add('met');
+                  iconEl.textContent = '✓';
+                }
+              } else {
+                itemEl.classList.remove('met');
+                iconEl.textContent = '✗';
+              }
+            });
+
+            passwordAllRulesMet = passedCount === PASSWORD_RULES.length;
+
+            if (val.length === 0) {
+              passwordInput.classList.remove('is-valid', 'is-invalid');
+              passwordInput.setAttribute('aria-invalid', 'false');
+            } else if (passwordAllRulesMet) {
+              passwordInput.classList.add('is-valid');
+              passwordInput.classList.remove('is-invalid');
+              passwordInput.setAttribute('aria-invalid', 'false');
+            } else {
+              passwordInput.classList.add('is-invalid');
+              passwordInput.classList.remove('is-valid');
+              passwordInput.setAttribute('aria-invalid', 'true');
+            }
+
+            const tier = val.length === 0 ? STRENGTH_TIERS[0] : STRENGTH_TIERS[passedCount];
+            if (strengthText) {
+              strengthText.textContent = tier.label;
+              strengthText.style.color = tier.color;
+            }
+
+            segments.forEach((seg, index) => {
+              if (!seg) return;
+              if (index < tier.segments) {
+                seg.style.backgroundColor = tier.color;
+                seg.style.boxShadow = `0 0 8px ${tier.color}66`;
+              } else {
+                seg.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                seg.style.boxShadow = 'none';
+              }
+            });
+
+            if (conditionsCounter) {
+              conditionsCounter.textContent = `${passedCount} / ${PASSWORD_RULES.length} rules`;
+            }
+
+            if (progressRingCircle) {
+              const offset = CIRCUMFERENCE - (passedCount / PASSWORD_RULES.length) * CIRCUMFERENCE;
+              progressRingCircle.style.strokeDashoffset = `${offset}`;
+              progressRingCircle.style.stroke = tier.color;
+            }
+
+            if (rulesAnnouncer) {
+              if (val.length > 0) {
+                rulesAnnouncer.textContent = `Password meets ${passedCount} of 5 requirements. Strength: ${tier.label}.`;
+              } else {
+                rulesAnnouncer.textContent = '';
+              }
+            }
+
+            validateConfirmPassword();
+            checkFormValidity();
+          }
+
+          // 5. Confirm Password Validation
+          function validateConfirmPassword() {
+            const pwVal = passwordInput.value;
+            const confirmVal = confirmInput.value;
+
+            if (confirmVal.length === 0) {
+              confirmValid = false;
+              confirmInput.classList.remove('is-valid', 'is-invalid');
+              confirmInput.setAttribute('aria-invalid', 'false');
+              if (confirmFeedback) {
+                confirmFeedback.textContent = 'Confirm your password.';
+                confirmFeedback.className = 'field-feedback';
+              }
+            } else if (confirmVal === pwVal && pwVal.length > 0) {
+              confirmValid = true;
+              confirmInput.classList.add('is-valid');
+              confirmInput.classList.remove('is-invalid');
+              confirmInput.setAttribute('aria-invalid', 'false');
+              if (confirmFeedback) {
+                confirmFeedback.textContent = '✓ Passwords match';
+                confirmFeedback.className = 'field-feedback valid';
+              }
+            } else {
+              confirmValid = false;
+              confirmInput.classList.add('is-invalid');
+              confirmInput.classList.remove('is-valid');
+              confirmInput.setAttribute('aria-invalid', 'true');
+              if (confirmFeedback) {
+                confirmFeedback.textContent = '✗ Passwords do not match';
+                confirmFeedback.className = 'field-feedback invalid';
+              }
+            }
+            checkFormValidity();
+          }
+
+          // 6. Overall Form Validity
+          function checkFormValidity() {
+            const isReady = nameValid && emailValid && passwordAllRulesMet && confirmValid;
+            if (submitBtn) {
+              submitBtn.disabled = !isReady;
+              submitBtn.setAttribute('aria-disabled', (!isReady).toString());
+
+              if (isReady) {
+                submitBtn.classList.add('is-ready');
+              } else {
+                submitBtn.classList.remove('is-ready');
+              }
+            }
+          }
+
+          // 7. Highlight Unmet Items
+          function highlightUnmetItems() {
+            if (formCard) {
+              formCard.classList.remove('shake');
+              void formCard.offsetWidth;
+              formCard.classList.add('shake');
+              setTimeout(() => formCard.classList.remove('shake'), 500);
+            }
+
+            if (!nameValid) {
+              nameInput.classList.remove('field-highlight');
+              void nameInput.offsetWidth;
+              nameInput.classList.add('field-highlight');
+              nameInput.focus();
+              return;
+            }
+
+            if (!emailValid) {
+              emailInput.classList.remove('field-highlight');
+              void emailInput.offsetWidth;
+              emailInput.classList.add('field-highlight');
+              emailInput.focus();
+              return;
+            }
+
+            if (!passwordAllRulesMet) {
+              passwordInput.classList.remove('field-highlight');
+              void passwordInput.offsetWidth;
+              passwordInput.classList.add('field-highlight');
+
+              PASSWORD_RULES.forEach((rule) => {
+                const isMet = rule.regex.test(passwordInput.value);
+                if (!isMet) {
+                  const item = document.getElementById(`rule-item-${rule.id}`);
+                  if (item) {
+                    item.classList.remove('checklist-flash');
+                    void item.offsetWidth;
+                    item.classList.add('checklist-flash');
+                  }
+                }
+              });
+              passwordInput.focus();
+              return;
+            }
+
+            if (!confirmValid) {
+              confirmInput.classList.remove('field-highlight');
+              void confirmInput.offsetWidth;
+              confirmInput.classList.add('field-highlight');
+              confirmInput.focus();
+            }
+          }
+
+          if (submitWrapper) {
+            submitWrapper.addEventListener('click', (e) => {
+              const isReady = nameValid && emailValid && passwordAllRulesMet && confirmValid;
+              if (!isReady) {
+                e.preventDefault();
+                highlightUnmetItems();
+              }
+            });
+          }
+
+          // 8. Generate Strong Password
+          if (btnGeneratePw) {
+            btnGeneratePw.addEventListener('click', () => {
+              const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+              const lower = 'abcdefghijkmnopqrstuvwxyz';
+              const digits = '23456789';
+              const symbols = '!@#$%^&*-_+=?';
+              const all = upper + lower + digits + symbols;
+
+              let pwd = [
+                upper[Math.floor(Math.random() * upper.length)],
+                lower[Math.floor(Math.random() * lower.length)],
+                digits[Math.floor(Math.random() * digits.length)],
+                symbols[Math.floor(Math.random() * symbols.length)]
+              ];
+
+              while (pwd.length < 14) {
+                pwd.push(all[Math.floor(Math.random() * all.length)]);
+              }
+
+              for (let i = pwd.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+              }
+
+              const generated = pwd.join('');
+              passwordInput.value = generated;
+              confirmInput.value = generated;
+
+              passwordInput.type = 'text';
+              confirmInput.type = 'text';
+              if (togglePasswordBtn) togglePasswordBtn.innerHTML = SVG_EYE_OFF;
+              if (toggleConfirmPasswordBtn) toggleConfirmPasswordBtn.innerHTML = SVG_EYE_OFF;
+
+              validatePassword();
+              validateConfirmPassword();
+
+              if (copyText) copyText.textContent = 'Copy';
+            });
+          }
+
+          if (btnCopyPw) {
+            btnCopyPw.addEventListener('click', async () => {
+              const val = passwordInput.value;
+              if (!val) {
+                if (copyText) copyText.textContent = 'Empty';
+                setTimeout(() => { if (copyText) copyText.textContent = 'Copy'; }, 1200);
+                return;
+              }
+
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  await navigator.clipboard.writeText(val);
+                } else {
+                  const textArea = document.createElement('textarea');
+                  textArea.value = val;
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textArea);
+                }
+                if (copyText) copyText.textContent = 'Copied!';
+                setTimeout(() => { if (copyText) copyText.textContent = 'Copy'; }, 1800);
+              } catch (err) {
+                if (copyText) copyText.textContent = 'Copied!';
+                setTimeout(() => { if (copyText) copyText.textContent = 'Copy'; }, 1800);
+              }
+            });
+          }
+
+          // 9. Password Visibility Toggles
+          if (togglePasswordBtn) {
+            togglePasswordBtn.addEventListener('click', () => {
+              const isPw = passwordInput.type === 'password';
+              passwordInput.type = isPw ? 'text' : 'password';
+              togglePasswordBtn.innerHTML = isPw ? SVG_EYE_OFF : SVG_EYE;
+              togglePasswordBtn.setAttribute('aria-label', isPw ? 'Hide password' : 'Show password');
+              passwordInput.focus();
+            });
+          }
+
+          if (toggleConfirmPasswordBtn) {
+            toggleConfirmPasswordBtn.addEventListener('click', () => {
+              const isPw = confirmInput.type === 'password';
+              confirmInput.type = isPw ? 'text' : 'password';
+              toggleConfirmPasswordBtn.innerHTML = isPw ? SVG_EYE_OFF : SVG_EYE;
+              toggleConfirmPasswordBtn.setAttribute('aria-label', isPw ? 'Hide confirm password' : 'Show confirm password');
+              confirmInput.focus();
+            });
+          }
+
+          // 10. Canvas Confetti
+          function launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            let width = (canvas.width = window.innerWidth);
+            let height = (canvas.height = window.innerHeight);
+
+            const colors = ['#38bdf8', '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ffffff'];
+            const particles = [];
+            const count = 90;
+
+            for (let i = 0; i < count; i++) {
+              particles.push({
+                x: width * 0.5 + (Math.random() * 80 - 40),
+                y: height * 0.45,
+                vx: (Math.random() - 0.5) * 16,
+                vy: (Math.random() - 0.8) * 18,
+                size: Math.random() * 7 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                rotationSpeed: (Math.random() - 0.5) * 10,
+                alpha: 1,
+                gravity: 0.38
+              });
+            }
+
+            let animationFrame;
+            function update() {
+              ctx.clearRect(0, 0, width, height);
+              let alive = 0;
+
+              particles.forEach((p) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity;
+                p.vx *= 0.98;
+                p.rotation += p.rotationSpeed;
+                p.alpha -= 0.009;
+
+                if (p.alpha > 0) {
+                  alive++;
+                  ctx.save();
+                  ctx.globalAlpha = Math.max(0, p.alpha);
+                  ctx.translate(p.x, p.y);
+                  ctx.rotate((p.rotation * Math.PI) / 180);
+                  ctx.fillStyle = p.color;
+                  ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                  ctx.restore();
+                }
+              });
+
+              if (alive > 0) {
+                animationFrame = requestAnimationFrame(update);
+              } else {
+                ctx.clearRect(0, 0, width, height);
+                cancelAnimationFrame(animationFrame);
+              }
+            }
+            update();
+          }
+
+          // 11. Form Submit & Back Button
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const isReady = nameValid && emailValid && passwordAllRulesMet && confirmValid;
+            if (!isReady) {
+              highlightUnmetItems();
+              return;
+            }
+
+            if (summaryName) summaryName.textContent = nameInput.value.trim();
+            if (summaryEmail) summaryEmail.textContent = emailInput.value.trim();
+            const now = new Date();
+            if (summaryTime) {
+              summaryTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+
+            if (formContainer) formContainer.style.display = 'none';
+            if (successScreen) successScreen.classList.add('active');
+
+            launchConfetti();
+          });
+
+          if (btnBack) {
+            btnBack.addEventListener('click', () => {
+              if (successScreen) successScreen.classList.remove('active');
+              if (formContainer) formContainer.style.display = 'block';
+              nameInput.focus();
+            });
+          }
+
+          // 12. Attach Robust Event Listeners
+          function attachValidationListeners(inputEl, validateFn) {
+            ['input', 'change', 'paste', 'animationstart', 'keyup'].forEach((evt) => {
+              inputEl.addEventListener(evt, () => {
+                setTimeout(validateFn, 0);
+              });
+            });
+          }
+
+          attachValidationListeners(nameInput, validateName);
+          attachValidationListeners(emailInput, validateEmail);
+          attachValidationListeners(passwordInput, validatePassword);
+          attachValidationListeners(confirmInput, validateConfirmPassword);
+
+          // Initial Validation Run
+          validateName();
+          validateEmail();
+          validatePassword();
+          validateConfirmPassword();
+        }
+
+        // Safe Initialization (handles both pre-DOMContentLoaded and post-DOMContentLoaded states)
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', init);
+        } else {
+          init();
+        }
+      })();
+    </script>
+  </body>
+</html>
